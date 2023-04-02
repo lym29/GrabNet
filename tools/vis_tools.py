@@ -44,7 +44,8 @@ def vis_results(dorig, coarse_net, refine_net, rh_model, show_gen=True, show_rec
             drec_cnet['verts_object'] = dorig['verts_object']
             drec_cnet['h2o_dist']= h2o.abs()
 
-            drec_rnet = refine_net(**drec_cnet)
+            # drec_rnet = refine_net(**drec_cnet)
+            drec_rnet = drec_cnet
             verts_rh_rec_rnet = rh_model(**drec_rnet).vertices
 
             for cId in range(0, len(dorig['bps_object'])):
@@ -78,8 +79,9 @@ def vis_results(dorig, coarse_net, refine_net, rh_model, show_gen=True, show_rec
                 if save:
                     save_path = os.path.join(save_dir, str(cId))
                     makepath(save_path)
-                    hand_mesh_rec_rnet.write_ply(filename=save_path + '/rh_mesh_gen_%d.ply' % cId)
-                    obj_mesh[0].write_ply(filename=save_path + '/obj_mesh_%d.ply' % cId)
+                    hand_mesh_orig.write_ply(filename=save_path + '/rh_mesh_orig_%d.ply' % cId)
+                    hand_mesh_rec_rnet.write_ply(filename=save_path + '/rh_mesh_rec_%d.ply' % cId)
+                    obj_mesh.write_ply(filename=save_path + '/obj_mesh_%d.ply' % cId)
 
         if show_gen:
             mvs = MeshViewers(window_width=imw * cols, window_height=imh, shape=[2, cols], keepalive=True)
@@ -126,7 +128,7 @@ def vis_results(dorig, coarse_net, refine_net, rh_model, show_gen=True, show_rec
                     save_path = os.path.join(save_dir, str(cId))
                     makepath(save_path)
                     hand_mesh_gen_rnet.write_ply(filename=save_path + '/rh_mesh_gen_%d.ply' % cId)
-                    obj_mesh[0].write_ply(filename=save_path + '/obj_mesh_%d.ply' % cId)
+                    obj_mesh.write_ply(filename=save_path + '/obj_mesh_%d.ply' % cId)
 
 
 

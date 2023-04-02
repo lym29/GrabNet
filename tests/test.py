@@ -26,7 +26,8 @@ from grabnet.tools.vis_tools import vis_results
 from grabnet.data.dataloader import LoadData
 from grabnet.tools.cfg_parser import Config
 from grabnet.train.trainer import Trainer
-
+from trainer.lap_incre_trainer import LapIncreTrainer
+import json
 
 def inference(grabnet):
 
@@ -34,18 +35,27 @@ def inference(grabnet):
     grabnet.refine_net.eval()
 
     ds_name = 'test'
-    mesh_base = '/ps/scratch/grab/data/object_meshes/contact_meshes'
+    mesh_base = '/ghome/l5/ymliu/data/GrabNet_OakInk_ds/tools/object_meshes/'
+    print("load data start")
     ds_test = LoadData(dataset_dir=grabnet.cfg.dataset_dir, ds_name=ds_name)
+    print("load data done")
     n_samples = 5
+    gpu_count = torch.cuda.device_count() if grabnet.cfg.use_multigpu else 1
 
     rh_model = mano.load(model_path=grabnet.cfg.rhm_path,
                          model_type='mano',
                          num_pca_comps=45,
                          batch_size=n_samples,
                          flat_hand_mean=True).to(grabnet.device)
+    # rhm_train_rn = mano.load(model_path=grabnet.cfg.rhm_path,
+    #                         model_type='mano',
+    #                         num_pca_comps=45,
+    #                         batch_size=n_samples // gpu_count,
+    #                         flat_hand_mean=True).to(grabnet.device)
 
     grabnet.refine_net.rhm_train = rh_model
     test_obj_names = np.unique(ds_test.frame_objs)
+    print(test_obj_names)
 
     grabnet.logger(f'################# \n'
                           f'Colors Guide:'
@@ -76,7 +86,8 @@ def inference(grabnet):
             rotmats.append(rot_mat)
         frame_data['mesh_object'] = obj_meshes
         frame_data['rotmat'] = rotmats
-        save_dir = os.path.join(grabnet.cfg.work_dir, 'test_grasp_results')
+        save_dir = os.path.join(grabnet.cfg.work_dir, 'test_grasp_results', obj)
+        grabnet.logger(f'Save Dir is {save_dir}')
         grabnet.logger(f'#################\n'
                               f'                   \n'
                               f'Showing results for the {obj.upper()}'
@@ -87,9 +98,21 @@ def inference(grabnet):
                     rh_model=rh_model,
                     show_rec=True,
                     show_gen=True,
-                    save=False,
+                    save=True,
                     save_dir=save_dir
                     )
+        
+def save_training_loss(grabnet):
+    eval_loss_dict_cnet, eval_loss_dict_rnet = grabnet.evaluate()
+    error_path = os.path.join(grabnet.cfg.work_dir, 'test_error')
+    if os.path.exists(error_path) is False:
+        os.makedirs(error_path)
+    with open(os.path.join(error_path, 'cnet_eval_loss.json'), 'w') as f:
+        json.dump(eval_loss_dict_cnet, f)
+    with open(os.path.join(error_path, 'rnet_eval_loss.json'), 'w') as f:
+        json.dump(eval_loss_dict_rnet, f)
+
+
 
 if __name__ == '__main__':
 
@@ -117,19 +140,21 @@ if __name__ == '__main__':
     best_rnet = 'grabnet/models/refinenet.pt'
     vpe_path  = 'grabnet/configs/verts_per_edge.npy'
     c_weights_path = 'grabnet/configs/rhand_weight.npy'
-    work_dir = cwd + '/tests'
+    
+    config = {
+        'vpe_path': vpe_path,
+        'c_weights_path': c_weights_path,
+    }
+
+    cfg = Config(default_cfg_path=cfg_path, **config)
+
+    if cfg.work_dir is None:
+        cfg.work_dir = cwd + '/tests'
 
     if cfg_path is None:
         cfg_path = 'grabnet/configs/grabnet_cfg.yaml'
 
-    config = {
-        'work_dir':work_dir,
-        'vpe_path': vpe_path,
-        'c_weights_path': c_weights_path,
-
-    }
-
-    cfg = Config(default_cfg_path=cfg_path, **config)
+    
 
     if data_path is not None:
         cfg['dataset_dir'] = data_path
@@ -140,6 +165,15 @@ if __name__ == '__main__':
     if cfg.best_rnet is None:
         cfg['best_rnet'] = best_rnet
 
-    grabnet = Trainer(cfg=cfg, inference=True)
+
+    # grabnet = Trainer(cfg=cfg, inference=True)
+    # inference(grabnet)
+
+    # grabnet = LapIncreTrainer(cfg=cfg)
+    # grabnet.fit_cnet = True
+    # grabnet.fit_rnet = True
+    # save_training_loss(grabnet)
+
+    grabnet = LapIncreTrainer(cfg=cfg, inference=True)
     inference(grabnet)
 

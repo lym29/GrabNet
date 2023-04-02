@@ -20,6 +20,7 @@ import os
 import time
 import numpy as np
 import torch
+import json
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 to_cpu = lambda tensor: tensor.detach().cpu().numpy()
@@ -30,7 +31,8 @@ class LoadData(data.Dataset):
                  ds_name='train',
                  dtype=torch.float32,
                  only_params = False,
-                 load_on_ram = False):
+                 load_on_ram = False,
+                 oakink_path = None):
 
         super().__init__()
 
@@ -47,6 +49,10 @@ class LoadData(data.Dataset):
         self.sbjs = np.unique(self.frame_sbjs)
         self.obj_info = np.load(os.path.join(dataset_dir, 'obj_info.npy'), allow_pickle=True).item()
         self.sbj_info = np.load(os.path.join(dataset_dir, 'sbj_info.npy'), allow_pickle=True).item()
+
+        self.obj_names = list(self.obj_info.keys())
+
+        self.obj_label = {obj_name:i for i, obj_name in enumerate(self.obj_info)}
 
         ## bps_torch data
 
@@ -67,10 +73,26 @@ class LoadData(data.Dataset):
             self.ds = self[:]
             self.load_on_ram = True
 
+        if oakink_path is None:
+            oakink_path = '/ghome/l5/ymliu/data/OakInk/'
+        oakink_meta_file = os.path.join(oakink_path, 'shape', 'metaV2', 'object_id.json')
+        with open(oakink_meta_file, 'r') as f:
+            self.oakink_meta = json.load(f)
+
     def _np2torch(self,ds_path):
         data = np.load(ds_path, allow_pickle=True)
-        data_torch = {k:torch.tensor(data[k]) for k in data.files}
+        data_torch={}
+        for k in data.files:
+            if k=='raw_obj_id':
+                obj_id = self.obj_label[np.array_str(data[k])]
+                data_torch[k] = torch.tensor(obj_id).int()
+            elif k=='is_virtual':
+                data_torch[k] = torch.tensor(data[k]).bool()
+            else:
+                data_torch[k] = torch.tensor(data[k]).float()
+        # data_torch = {k:torch.tensor(data[k]).float() for k in data.files}
         return data_torch
+    
     def load_disk(self,idx):
 
         if isinstance(idx, int):
@@ -99,7 +121,7 @@ class LoadData(data.Dataset):
 
 if __name__=='__main__':
 
-    data_path = '/ps/scratch/grab/contact_results/omid_46/GrabNet/data'
+    data_path = '/ghome/l5/ymliu/data/GrabNet_OakInk_ds/data/'
     ds = LoadData(data_path, ds_name='val', only_params=False)
 
     dataloader = data.DataLoader(ds, batch_size=32, shuffle=True, num_workers=10, drop_last=True)
