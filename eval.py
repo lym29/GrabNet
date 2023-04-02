@@ -31,12 +31,15 @@ if __name__ == '__main__':
 
     parser.add_argument('--config-path', default=None, type=str,
                         help='The path to the confguration of the trained GrabNet model')
+    parser.add_argument('--work-dir', default=None, type=str,
+                        help='The path to restore the eval results')
 
     args = parser.parse_args()
 
     cfg_path = args.config_path
     data_path = args.data_path
     rhm_path = args.rhm_path
+    work_dir = args.work_dir
 
     cwd = os.getcwd()
 
@@ -44,7 +47,9 @@ if __name__ == '__main__':
     best_rnet = 'grabnet/models/refinenet.pt'
     vpe_path = 'grabnet/configs/verts_per_edge.npy'
     c_weights_path = 'grabnet/configs/rhand_weight.npy'
-    work_dir = cwd + '/eval'
+
+    if work_dir is None:
+        work_dir = cwd + '/eval'
 
     if cfg_path is None:
         cfg_path = 'grabnet/configs/grabnet_cfg.yaml'

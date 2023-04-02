@@ -108,12 +108,17 @@ class EarlyStopping:
         self.val_loss_min = np.Inf
         self.delta = delta
         self.trace_func = trace_func
-    def __call__(self, val_loss):
+    def __call__(self, val_loss, train_loss):
 
         score = -val_loss
+        train_score = -train_loss
 
         if self.best_score is None:
             self.best_score = score
+        elif train_score < score + self.delta:
+            self.counter = 0
+            if self.trace_func is not None:
+                self.trace_func('Not yet converged')
         elif score < self.best_score + self.delta:
             self.counter += 1
             if self.trace_func is not None:

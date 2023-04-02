@@ -1,0 +1,273 @@
+tests/test_grasp_results/0/obj_mesh_0.ply
+tests/test_grasp_results/0/rh_mesh_gen_0.ply
+tests/test_grasp_results/1/obj_mesh_1.ply
+tests/test_grasp_results/1/rh_mesh_gen_1.ply
+tests/test_grasp_results/2/obj_mesh_2.ply
+tests/test_grasp_results/2/rh_mesh_gen_2.ply
+tests/test_grasp_results/3/obj_mesh_3.ply
+tests/test_grasp_results/3/rh_mesh_gen_3.ply
+tests/test_grasp_results/4/obj_mesh_4.ply
+tests/test_grasp_results/4/rh_mesh_gen_4.ply
+.ipynb_checkpoints/eval-checkpoint.py
+.ipynb_checkpoints/train-checkpoint.py
+eval/summaries/events.out.tfevents.1667743900.garmentp32
+eval/summaries/events.out.tfevents.1678686487.vserver_ymliu
+eval/summaries/events.out.tfevents.1678686627.vserver_ymliu
+eval/summaries/events.out.tfevents.1678686674.vserver_ymliu
+eval/summaries/events.out.tfevents.1678686731.vserver_ymliu
+eval/summaries/events.out.tfevents.1678687276.vserver_ymliu
+eval/.ipynb_checkpoints/V00-checkpoint.log
+eval/V00.log
+eval/evaluations/ds_/coarsenet_CoarseNet_RefineNet.json
+eval/evaluations/ds_/coarsenet_CoarseNet.json
+eval/evaluations/ds_/TR00_E121_cnet_CoarseNet_RefineNet.json
+eval/evaluations/ds_/TR00_E121_cnet_CoarseNet.json
+scripts/eval.sh
+scripts/test.sh
+scripts/unzipdata.sh
+scripts/.ipynb_checkpoints/eval-checkpoint.sh
+scripts/.ipynb_checkpoints/prepare_data-checkpoint.sh
+scripts/.ipynb_checkpoints/test-checkpoint.sh
+scripts/.ipynb_checkpoints/unzipdata-checkpoint.sh
+tests/V00.log
+tests/summaries/events.out.tfevents.1667666300.garmentp32
+tests/summaries/events.out.tfevents.1667675895.garmentp32
+tests/summaries/events.out.tfevents.1667675938.garmentp32
+tests/summaries/events.out.tfevents.1667675994.garmentp32
+tests/summaries/events.out.tfevents.1667676754.garmentp32
+tests/summaries/events.out.tfevents.1667678011.garmentp32
+tests/summaries/events.out.tfevents.1667678194.garmentp32
+tests/summaries/events.out.tfevents.1667679114.garmentp32
+tests/summaries/events.out.tfevents.1667679422.garmentp32
+tests/summaries/events.out.tfevents.1667687634.garmentp32
+tests/summaries/events.out.tfevents.1678707399.vserver_ymliu
+tests/summaries/events.out.tfevents.1678710016.vserver_ymliu
+tests/summaries/events.out.tfevents.1678711749.vserver_ymliu
+tests/summaries/events.out.tfevents.1678711962.vserver_ymliu
+tests/summaries/events.out.tfevents.1678712892.vserver_ymliu
+tests/summaries/events.out.tfevents.1678713128.vserver_ymliu
+tests/summaries/events.out.tfevents.1678713343.vserver_ymliu
+.vscode/launch.json
+grabnet/__pycache__/__init__.cpython-38.pyc
+grabnet/__pycache__/__init__.cpython-39.pyc
+grabnet/__pycache__/__init__.cpython-310.pyc
+grabnet/data/.ipynb_checkpoints/dataloader-checkpoint.py
+grabnet/data/.ipynb_checkpoints/unzip_data-checkpoint.py
+grabnet/tests/.ipynb_checkpoints/test-checkpoint.py
+grabnet/train/.ipynb_checkpoints/trainer-checkpoint.py
+grabnet/models/coarsenet.pt
+grabnet/models/refinenet.pt
+grabnet/models/__pycache__/__init__.cpython-38.pyc
+grabnet/models/__pycache__/__init__.cpython-39.pyc
+grabnet/models/__pycache__/models.cpython-38.pyc
+grabnet/models/__pycache__/models.cpython-39.pyc
+grabnet/tools/__pycache__/__init__.cpython-38.pyc
+grabnet/tools/__pycache__/__init__.cpython-39.pyc
+grabnet/tools/__pycache__/__init__.cpython-310.pyc
+grabnet/tools/__pycache__/cfg_parser.cpython-38.pyc
+grabnet/tools/__pycache__/cfg_parser.cpython-39.pyc
+grabnet/tools/__pycache__/cfg_parser.cpython-310.pyc
+grabnet/tools/__pycache__/train_tools.cpython-38.pyc
+grabnet/tools/__pycache__/train_tools.cpython-39.pyc
+grabnet/tools/__pycache__/train_tools.cpython-310.pyc
+grabnet/tools/__pycache__/utils.cpython-38.pyc
+grabnet/tools/__pycache__/utils.cpython-39.pyc
+grabnet/tools/__pycache__/utils.cpython-310.pyc
+grabnet/tools/__pycache__/vis_tools.cpython-38.pyc
+grabnet/tools/__pycache__/vis_tools.cpython-39.pyc
+grabnet/tools/__pycache__/vis_tools.cpython-310.pyc
+grabnet/train/__pycache__/__init__.cpython-38.pyc
+grabnet/train/__pycache__/__init__.cpython-39.pyc
+grabnet/train/__pycache__/__init__.cpython-310.pyc
+grabnet/train/__pycache__/trainer.cpython-38.pyc
+grabnet/train/__pycache__/trainer.cpython-39.pyc
+grabnet/train/__pycache__/trainer.cpython-310.pyc
+
+# Created by https://www.toptal.com/developers/gitignore/api/jupyternotebooks,python
+# Edit at https://www.toptal.com/developers/gitignore?templates=jupyternotebooks,python
+
+### JupyterNotebooks ###
+# gitignore template for Jupyter Notebooks
+# website: http://jupyter.org/
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Remove previous ipynb_checkpoints
+#   git rm -r .ipynb_checkpoints/
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+
+# IPython
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/#use-with-ide
+.pdm.toml
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
+#.idea/
+
+### Python Patch ###
+# Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
+poetry.toml
+
+# ruff
+.ruff_cache/
+
+# LSP config files
+pyrightconfig.json
+
+# End of https://www.toptal.com/developers/gitignore/api/jupyternotebooks,python
+

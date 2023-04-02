@@ -130,6 +130,8 @@ class CoarseNet(nn.Module):
         z = self.encode(bps_object, trans_rhand, global_orient_rhand_rotmat)
         z_s = z.rsample()
 
+        # z_s = z_s + torch.normal(0, 0.5, size=z_s.size()).to(z_s.get_device())
+
         hand_parms = self.decode(z_s, bps_object)
         results = {'mean': z.mean, 'std': z.scale}
         results.update(hand_parms)
@@ -167,6 +169,8 @@ class RefineNet(nn.Module):
         self.dout = nn.Dropout(0.3)
         self.actvf = nn.LeakyReLU(.2, inplace=True)
         self.tanh = nn.Tanh()
+
+        self.rhm_train = None
 
     def forward(self, h2o_dist, fpose_rhand_rotmat_f, trans_rhand_f, global_orient_rhand_rotmat_f, verts_object, **kwargs):
 
