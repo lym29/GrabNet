@@ -21,6 +21,11 @@ import time
 import numpy as np
 import torch
 import json
+import sys
+sys.path.append('.')
+sys.path.append('..')
+from data_tools.utils import get_seq_id
+from data_tools.utils import OakInk_Transcoder
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 to_cpu = lambda tensor: tensor.detach().cpu().numpy()
@@ -43,6 +48,7 @@ class LoadData(data.Dataset):
 
         frame_names = np.load(os.path.join(dataset_dir,ds_name, 'frame_names.npz'))['frame_names']
         self.frame_names =np.asarray([os.path.join(dataset_dir, fname) for fname in frame_names])
+        self.seq_id = get_seq_id(self.frame_names)
         self.frame_sbjs = np.asarray([name.split('/')[-3] for name in self.frame_names])
         self.frame_objs = np.asarray([name.split('/')[-2].split('_')[0] for name in self.frame_names])
 
@@ -117,6 +123,7 @@ class LoadData(data.Dataset):
             if not self.load_on_ram:
                 form_disk = self.load_disk(idx)
                 data_out.update(form_disk)
+        data_out['frame_id'] = torch.tensor(idx).int()
         return data_out
 
 if __name__=='__main__':
@@ -125,6 +132,7 @@ if __name__=='__main__':
     ds = LoadData(data_path, ds_name='val', only_params=False)
 
     dataloader = data.DataLoader(ds, batch_size=32, shuffle=True, num_workers=10, drop_last=True)
+    seq_transcoder = OakInk_Transcoder()
 
     s = time.time()
     for i in range(320):
@@ -133,9 +141,13 @@ if __name__=='__main__':
     print('pass')
 
     dl = iter(dataloader)
+
     s = time.time()
     for i in range(10):
         a = next(dl)
+        f_id = a['frame_id']
+        print(f_id[i], ds.seq_id[i])
+        print(seq_transcoder(ds.seq_id[i]))
     print(time.time()-s)
     print('pass')
 
