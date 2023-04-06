@@ -94,6 +94,8 @@ class LoadData(data.Dataset):
                 data_torch[k] = torch.tensor(obj_id).int()
             elif k=='is_virtual':
                 data_torch[k] = torch.tensor(data[k]).bool()
+            elif k=='seq_id':
+                pass
             else:
                 data_torch[k] = torch.tensor(data[k]).float()
         # data_torch = {k:torch.tensor(data[k]).float() for k in data.files}

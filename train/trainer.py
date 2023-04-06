@@ -146,6 +146,13 @@ class Trainer:
         self.fit_cnet = False
         self.fit_rnet = False
 
+    def load_data_info(self, ds:LoadData):
+        data_info = {}
+        data_info['frame_names'] = ds.frame_names
+        data_info['frame_sbjs'] = ds.frame_sbjs
+        data_info['seq_id'] = ds.seq_id
+        return data_info
+
 
     def load_data(self,cfg, inference):
 
@@ -156,20 +163,17 @@ class Trainer:
                   }
 
         ds_name = 'test'
-        self.data_info[ds_name] = {}
         ds_test = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name)
-        self.data_info[ds_name]['frame_names'] = ds_test.frame_names
-        self.data_info[ds_name]['frame_sbjs'] = ds_test.frame_sbjs
+
         self.data_info['obj_info'] = ds_test.obj_info
         self.data_info['obj_names'] = ds_test.obj_names
-        self.ds_test = DataLoader(ds_test, batch_size=cfg.batch_size, shuffle=True, drop_last=True)
+        self.data_info[ds_name] = self.load_data_info(ds_test)
+        self.ds_test = DataLoader(ds_test, batch_size=cfg.batch_size, shuffle=False, drop_last=True)
 
         if not inference:
             ds_name = 'train'
-            self.data_info[ds_name] = {}
             ds_train = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
-            self.data_info[ds_name]['frame_names'] = ds_train.frame_names
-            self.data_info[ds_name]['frame_sbjs'] = ds_train.frame_sbjs
+            self.data_info[ds_name] = self.load_data_info(ds_train)
             self.data_info['hand_vtmp'] = ds_train.sbj_vtemp
             self.data_info['hand_betas'] = ds_train.sbj_betas
             self.ds_train = DataLoader(ds_train, **kwargs)
@@ -177,8 +181,7 @@ class Trainer:
             ds_name = 'val'
             self.data_info[ds_name] = {}
             ds_val = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
-            self.data_info[ds_name]['frame_names'] = ds_val.frame_names
-            self.data_info[ds_name]['frame_sbjs'] = ds_val.frame_sbjs
+            self.data_info[ds_name] = self.load_data_info(ds_val)
             self.ds_val = DataLoader(ds_val, **kwargs)
 
             self.logger('Dataset Train, Vald, Test size respectively: %.2f M, %.2f K, %.2f K' %
