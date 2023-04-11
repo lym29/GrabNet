@@ -19,7 +19,8 @@ sys.path.append('..')
 import json
 import numpy as np
 import torch
-import mano
+# import mano
+from manotorch.manolayer import MANOOutput, ManoLayer
 
 from datetime import datetime
 
@@ -34,6 +35,7 @@ from torch.utils.data import DataLoader
 
 from pytorch3d.structures import Meshes
 from tensorboardX import SummaryWriter
+from oikit.oi_shape.utils import CENTER_IDX
 
 
 class Trainer:
@@ -76,21 +78,11 @@ class Trainer:
 
 
         with torch.no_grad():
-            self.rhm_train = mano.load(model_path=cfg.rhm_path,
-                                       model_type='mano',
-                                       num_pca_comps=45,
-                                       batch_size=cfg.batch_size,
-                                       flat_hand_mean=True).to(self.device)
-            
-            rhm_train_rn = mano.load(model_path=cfg.rhm_path,
-                                       model_type='mano',
-                                       num_pca_comps=45,
-                                       batch_size=cfg.batch_size // gpu_count,
-                                       flat_hand_mean=True).to(self.device)
+            self.mano_layer = ManoLayer(center_idx=CENTER_IDX, mano_assets_root='assets/mano_v1_2/').to(self.device)
             
         self.coarse_net = CoarseNet().to(self.device)
         self.refine_net = RefineNet().to(self.device)
-        self.refine_net.rhm_train = rhm_train_rn
+        self.refine_net.mano_layer = self.mano_layer
 
         self.LossL1 = torch.nn.L1Loss(reduction='mean')
         self.LossL2 = torch.nn.MSELoss(reduction='mean')
@@ -128,7 +120,7 @@ class Trainer:
 
         # weights for contact, penetration and distance losses
         self.vpe  = torch.from_numpy(np.load(cfg.vpe_path)).to(self.device).to(torch.long)
-        rh_f = torch.from_numpy(self.rhm_train.faces.astype(np.int32)).view(1, -1, 3)
+        rh_f = self.mano_layer.th_faces.view(1, -1, 3)
         self.rh_f = rh_f.repeat(self.cfg.batch_size,1,1).to(self.device).to(torch.long)
 
         v_weights = torch.from_numpy(np.load(cfg.c_weights_path)).to(torch.float32).to(self.device)
@@ -323,11 +315,22 @@ class Trainer:
         h2o_gt = h2o_gt.abs()
 
         return {'h2o_dist': h2o, 'h2o_gt': h2o_gt, 'o2h_gt': o2h_signed_gt}
+    
+    def get_hand_vertice(self, dorig, drec):
+        batch_hand_pose = torch.cat([drec['global_orient'], drec['hand_pose']], dim=1)
+        batch_hand_shape = dorig['hand_shape']
+        # construct the hand mesh from network output
+        out_put:MANOOutput = self.mano_layer(batch_hand_pose, batch_hand_shape)
+        verts_rhand = out_put.verts + drec['transl'][:, None, :]
+        return verts_rhand
+
 
     def loss_rnet(self, dorig, drec, ds_name='train'):
 
-        out_put = self.rhm_train(**drec)
-        verts_rhand = out_put.vertices
+        # out_put = self.rhm_train(**drec)
+        # verts_rhand = out_put.vertices
+
+        verts_rhand = self.get_hand_vertice(dorig, drec)
 
         rh_mesh = Meshes(verts=verts_rhand, faces=self.rh_f).to(self.device).verts_normals_packed().view(-1, 778, 3)
         h2o_gt = dorig['h2o_gt']
@@ -358,8 +361,10 @@ class Trainer:
 
         q_z = torch.distributions.normal.Normal(drec['mean'], drec['std'])
 
-        out_put = self.rhm_train(**drec)
-        verts_rhand = out_put.vertices
+        # out_put = self.rhm_train(**drec)
+        # verts_rhand = out_put.vertices
+
+        verts_rhand = self.get_hand_vertice(dorig, drec)
 
         rh_mesh = Meshes(verts=verts_rhand, faces=self.rh_f).to(self.device).verts_normals_packed().view(-1, 778, 3)
         rh_mesh_gt = Meshes(verts=dorig['verts_rhand'], faces=self.rh_f).to(self.device).verts_normals_packed().view(-1, 778, 3)
@@ -422,8 +427,9 @@ class Trainer:
         for epoch_num in range(1, n_epochs + 1):
             self.logger('--- starting Epoch # %03d' % epoch_num)
 
-            train_loss_dict_cnet, train_loss_dict_rnet = self.train()
             eval_loss_dict_cnet , eval_loss_dict_rnet  = self.evaluate()
+            train_loss_dict_cnet, train_loss_dict_rnet = self.train()
+
 
 
             if self.fit_cnet:
@@ -561,7 +567,8 @@ class Trainer:
                     MESH_SCALER = 1000
 
                     drec_cnet = self.coarse_net(**dorig)
-                    verts_hand_cnet = self.rhm_train(**drec_cnet).vertices
+                    # verts_hand_cnet = self.rhm_train(**drec_cnet).vertices
+                    verts_hand_cnet = self.get_hand_vertice(dorig, drec_cnet)
 
                     mean_error_cnet.append(torch.mean(torch.abs(dorig['verts_rhand'] - verts_hand_cnet) * MESH_SCALER))
 
@@ -569,7 +576,8 @@ class Trainer:
                     params_rnet = self.params_rnet(dorig)
                     dorig.update(params_rnet)
                     drec_rnet = self.refine_net(**dorig)
-                    verts_hand_mano = self.rhm_train(**drec_rnet).vertices
+                    # verts_hand_mano = self.rhm_train(**drec_rnet).vertices
+                    verts_hand_mano = self.get_hand_vertice(dorig, drec_rnet)
 
                     mean_error_rnet.append(torch.mean(torch.abs(dorig['verts_rhand'] - verts_hand_mano) * MESH_SCALER))
 

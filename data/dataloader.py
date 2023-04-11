@@ -126,6 +126,9 @@ class LoadData(data.Dataset):
                 form_disk = self.load_disk(idx)
                 data_out.update(form_disk)
         data_out['frame_id'] = torch.tensor(idx).int()
+
+        sbj_id = self.frame_sbjs[idx].item()
+        data_out['hand_shape'] = torch.tensor(self.sbj_info[self.sbjs[sbj_id]]['rh_betas']).float()
         return data_out
 
 if __name__=='__main__':

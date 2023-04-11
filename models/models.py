@@ -170,9 +170,9 @@ class RefineNet(nn.Module):
         self.actvf = nn.LeakyReLU(.2, inplace=True)
         self.tanh = nn.Tanh()
 
-        self.rhm_train = None
+        self.mano_layer = None
 
-    def forward(self, h2o_dist, fpose_rhand_rotmat_f, trans_rhand_f, global_orient_rhand_rotmat_f, verts_object, **kwargs):
+    def forward(self, h2o_dist, fpose_rhand_rotmat_f, trans_rhand_f, global_orient_rhand_rotmat_f, verts_object, hand_shape, **kwargs):
 
         bs = h2o_dist.shape[0]
         init_pose = fpose_rhand_rotmat_f[..., :2].reshape(bs, -1)
@@ -184,7 +184,8 @@ class RefineNet(nn.Module):
 
             if i != 0:
                 hand_parms = parms_decode(init_pose, init_trans)
-                verts_rhand = self.rhm_train(**hand_parms).vertices
+                hand_pose = torch.cat([hand_parms['global_orient'], hand_parms['hand_pose']], dim=1)
+                verts_rhand = self.mano_layer(hand_pose, hand_shape).verts + hand_parms['transl'][:, None, :]
                 _, h2o_dist, _ = point2point_signed(verts_rhand, verts_object)
 
             h2o_dist = self.bn1(h2o_dist)
