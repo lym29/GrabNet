@@ -121,7 +121,7 @@ class Trainer:
         # weights for contact, penetration and distance losses
         self.vpe  = torch.from_numpy(np.load(cfg.vpe_path)).to(self.device).to(torch.long)
         rh_f = self.mano_layer.th_faces.view(1, -1, 3)
-        self.rh_f = rh_f.repeat(self.cfg.batch_size,1,1).to(self.device).to(torch.long)
+        self.rh_f = rh_f.expand(self.cfg.batch_size,-1,-1).to(self.device).to(torch.long)
 
         v_weights = torch.from_numpy(np.load(cfg.c_weights_path)).to(torch.float32).to(self.device)
         v_weights2 = torch.pow(v_weights, 1.0 / 2.5)
@@ -417,7 +417,7 @@ class Trainer:
         prev_lr_cnet = np.inf
         prev_lr_rnet = np.inf
         self.fit_cnet = True
-        self.fit_rnet = True
+        self.fit_rnet = False
 
         lr_scheduler_cnet = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_cnet, 'min')
         lr_scheduler_rnet = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_rnet, 'min')
