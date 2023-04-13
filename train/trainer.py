@@ -31,7 +31,7 @@ from grabnet.data.dataloader import LoadData
 from grabnet.tools.train_tools import point2point_signed
 
 from torch import nn, optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 from pytorch3d.structures import Meshes
 from tensorboardX import SummaryWriter
@@ -150,7 +150,7 @@ class Trainer:
 
         kwargs = {'num_workers': cfg.n_workers,
                   'batch_size':cfg.batch_size,
-                  'shuffle':True,
+                  'shuffle':False,
                   'drop_last':True
                   }
 
@@ -162,19 +162,28 @@ class Trainer:
         self.data_info[ds_name] = self.load_data_info(ds_test)
         self.ds_test = DataLoader(ds_test, batch_size=cfg.batch_size, shuffle=False, drop_last=True)
 
+        selected = list(range(2*cfg.batch_size))
+
         if not inference:
             ds_name = 'train'
             ds_train = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
             self.data_info[ds_name] = self.load_data_info(ds_train)
             self.data_info['hand_vtmp'] = ds_train.sbj_vtemp
             self.data_info['hand_betas'] = ds_train.sbj_betas
+            ds_train = Subset(ds_train, selected)
             self.ds_train = DataLoader(ds_train, **kwargs)
+            
 
-            ds_name = 'val'
-            self.data_info[ds_name] = {}
-            ds_val = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
-            self.data_info[ds_name] = self.load_data_info(ds_val)
-            self.ds_val = DataLoader(ds_val, **kwargs)
+            # ds_name = 'val'
+            # self.data_info[ds_name] = {}
+            # ds_val = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
+            # self.data_info[ds_name] = self.load_data_info(ds_val)
+            # ds_val = Subset(ds_val, selected)
+            # self.ds_val = DataLoader(ds_val, **kwargs)
+
+            #for overfitting
+            self.ds_val = self.ds_train
+
 
             self.logger('Dataset Train, Vald, Test size respectively: %.2f M, %.2f K, %.2f K' %
                    (len(self.ds_train.dataset) * 1e-6, len(self.ds_val.dataset) * 1e-3, len(self.ds_test.dataset) * 1e-3))
@@ -204,7 +213,7 @@ class Trainer:
     def train(self):
 
         self.coarse_net.train()
-        self.refine_net.train()
+        # self.refine_net.train()
 
         save_every_it = len(self.ds_train) / self.cfg.log_every_epoch
 
@@ -238,6 +247,9 @@ class Trainer:
                                                         mode='train')
 
                     self.logger(train_msg)
+                    if self.epochs_completed % 20 == 0:
+                        self.vis_training_result(dorig, f'{self.epochs_completed}_{it}')
+
 
             if self.fit_rnet:
 
@@ -325,7 +337,7 @@ class Trainer:
         return verts_rhand
 
 
-    def loss_rnet(self, dorig, drec, ds_name='train'):
+    def loss_rnet(self, dorig, drec):
 
         # out_put = self.rhm_train(**drec)
         # verts_rhand = out_put.vertices
@@ -354,7 +366,7 @@ class Trainer:
 
         return loss_total, loss_dict
 
-    def loss_cnet(self, dorig, drec, ds_name='train'):
+    def loss_cnet(self, dorig, drec):
 
         device = dorig['verts_rhand'].device
         dtype = dorig['verts_rhand'].dtype
@@ -446,12 +458,12 @@ class Trainer:
                                                             epoch_num=self.epochs_completed, it=len(self.ds_val),
                                                             model_name='CoarseNet',
                                                             try_num=self.try_num, mode='evald')
-                    if eval_loss_dict_cnet['loss_total'] < self.best_loss_cnet and train_loss_dict_cnet['loss_total'] < self.best_loss_cnet:
+                    if train_loss_dict_cnet['loss_total'] < self.best_loss_cnet:
 
                         self.cfg.best_cnet = makepath(os.path.join(self.cfg.work_dir, 'snapshots', 'TR%02d_E%03d_cnet.pt' % (self.try_num, self.epochs_completed)), isfile=True)
                         self.save_cnet()
                         self.logger(eval_msg + ' ** ')
-                        self.best_loss_cnet = eval_loss_dict_cnet['loss_total']
+                        self.best_loss_cnet = train_loss_dict_cnet['loss_total']
 
                     else:
                         self.logger(eval_msg)
@@ -479,7 +491,7 @@ class Trainer:
                                                 self.epochs_completed)
 
                 if early_stopping_cnet(eval_loss_dict_cnet['loss_total'], train_loss_dict_cnet['loss_total'] ):
-                    self.fit_cnet = False
+                    # self.fit_cnet = False
                     self.logger('Early stopping CoarseNet training!')
 
             if self.fit_rnet:
