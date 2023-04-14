@@ -136,6 +136,8 @@ class CoarseNet(nn.Module):
         results = {'mean': z.mean, 'std': z.scale}
         results.update(hand_parms)
 
+        # print('in model:', trans_rhand[0], results['transl'][0])
+
         return results
 
     def sample_poses(self, bps_object, seed=None):

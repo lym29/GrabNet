@@ -45,7 +45,7 @@ class Trainer:
         
         self.dtype = torch.float32
 
-        torch.manual_seed(cfg.seed)
+        # torch.manual_seed(cfg.seed)
 
         starttime = datetime.now().replace(microsecond=0)
         makepath(cfg.work_dir, isfile=False)
@@ -79,6 +79,7 @@ class Trainer:
 
         with torch.no_grad():
             self.mano_layer = ManoLayer(center_idx=CENTER_IDX, mano_assets_root='assets/mano_v1_2/').to(self.device)
+            # self.mano_layer = ManoLayer(center_idx=CENTER_IDX, mano_assets_root='assets/mano_v1_2/').to(self.device)
             
         self.coarse_net = CoarseNet().to(self.device)
         self.refine_net = RefineNet().to(self.device)
@@ -110,6 +111,7 @@ class Trainer:
         self.epochs_completed = 0
         self.cfg = cfg
         self.coarse_net.cfg = cfg
+
 
         if cfg.best_cnet is not None:
             self._get_cnet_model().load_state_dict(torch.load(cfg.best_cnet, map_location=self.device), strict=False)
@@ -174,15 +176,13 @@ class Trainer:
             self.ds_train = DataLoader(ds_train, **kwargs)
             
 
-            # ds_name = 'val'
-            # self.data_info[ds_name] = {}
-            # ds_val = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
-            # self.data_info[ds_name] = self.load_data_info(ds_val)
-            # ds_val = Subset(ds_val, selected)
-            # self.ds_val = DataLoader(ds_val, **kwargs)
+            ds_name = 'val'
+            self.data_info[ds_name] = {}
+            ds_val = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
+            self.data_info[ds_name] = self.load_data_info(ds_val)
+            ds_val = Subset(ds_val, selected)
+            self.ds_val = DataLoader(ds_val, **kwargs)
 
-            #for overfitting
-            self.ds_val = self.ds_train
 
 
             self.logger('Dataset Train, Vald, Test size respectively: %.2f M, %.2f K, %.2f K' %
@@ -213,7 +213,7 @@ class Trainer:
     def train(self):
 
         self.coarse_net.train()
-        # self.refine_net.train()
+        self.refine_net.train()
 
         save_every_it = len(self.ds_train) / self.cfg.log_every_epoch
 
@@ -247,7 +247,8 @@ class Trainer:
                                                         mode='train')
 
                     self.logger(train_msg)
-                    if self.epochs_completed % 20 == 0:
+                if self.epochs_completed % 20 == 0:
+                    with torch.no_grad():
                         self.vis_training_result(dorig, f'{self.epochs_completed}_{it}')
 
 
@@ -361,8 +362,9 @@ class Trainer:
             'loss_dist_h_r': loss_dist_h,
         }
 
-        loss_total = torch.stack(list(loss_dict.values())).sum()
-        loss_dict['loss_total'] = loss_total
+        loss_total = 0
+        # loss_total = torch.stack(list(loss_dict.values())).sum()
+        # loss_dict['loss_total'] = loss_total
 
         return loss_total, loss_dict
 
@@ -411,8 +413,9 @@ class Trainer:
                      'loss_dist_o': loss_dist_o,
                      }
 
-        loss_total = torch.stack(list(loss_dict.values())).sum()
-        loss_dict['loss_total'] = loss_total
+        loss_total = 0
+        # loss_total = torch.stack(list(loss_dict.values())).sum()
+        # loss_dict['loss_total'] = loss_total
 
         return loss_total, loss_dict
 
@@ -433,8 +436,8 @@ class Trainer:
 
         lr_scheduler_cnet = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_cnet, 'min')
         lr_scheduler_rnet = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer_rnet, 'min')
-        early_stopping_cnet = EarlyStopping(patience=30, trace_func=self.logger)
-        early_stopping_rnet = EarlyStopping(patience=30, trace_func=self.logger)
+        early_stopping_cnet = EarlyStopping(patience=10, trace_func=self.logger)
+        early_stopping_rnet = EarlyStopping(patience=10, trace_func=self.logger)
 
         for epoch_num in range(1, n_epochs + 1):
             self.logger('--- starting Epoch # %03d' % epoch_num)
@@ -468,29 +471,35 @@ class Trainer:
                     else:
                         self.logger(eval_msg)
 
-                    self.swriter.add_scalars('total_loss_cnet/scalars',
-                                             {'train_loss_total': train_loss_dict_cnet['loss_total'],
-                                             'evald_loss_total': eval_loss_dict_cnet['loss_total'], },
-                                             self.epochs_completed)
+                    # self.swriter.add_scalars('total_loss_cnet/scalars',
+                    #                          {'train_loss_total': train_loss_dict_cnet['loss_total'],
+                    #                          'evald_loss_total': eval_loss_dict_cnet['loss_total'], },
+                    #                          self.epochs_completed)
                     
-                    self.swriter.add_scalars('kl_loss_cnet/scalars',
-                                             {'train_loss_kl': train_loss_dict_cnet['loss_kl'],
-                                             'evald_loss_kl': eval_loss_dict_cnet['loss_kl'], },
-                                             self.epochs_completed)
+                    # self.swriter.add_scalars('kl_loss_cnet/scalars',
+                    #                          {'train_loss_kl': train_loss_dict_cnet['loss_kl'],
+                    #                          'evald_loss_kl': eval_loss_dict_cnet['loss_kl'], },
+                    #                          self.epochs_completed)
                     
-                    if 'loss_lap' in train_loss_dict_cnet.keys():
-                        self.swriter.add_scalars('loss_lap_cnet/scalars',
-                                                {'train_loss_lap': train_loss_dict_cnet['loss_lap']/30,
-                                                'evald_loss_lap': eval_loss_dict_cnet['loss_lap']/30, },
-                                                self.epochs_completed)
+                    for k in train_loss_dict_cnet:
+                        self.swriter.add_scalars(f'{k}_cnet/scalars',
+                                                 {f'train_{k}':train_loss_dict_cnet[k],
+                                                  f'evald_{k}':eval_loss_dict_cnet[k]},
+                                                 self.epochs_completed)
+                    
+                    # if 'loss_lap' in train_loss_dict_cnet.keys():
+                    #     self.swriter.add_scalars('loss_lap_cnet/scalars',
+                    #                             {'train_loss_lap': train_loss_dict_cnet['loss_lap']/30,
+                    #                             'evald_loss_lap': eval_loss_dict_cnet['loss_lap']/30, },
+                    #                             self.epochs_completed)
                         
-                    if 'loss_anatomy' in train_loss_dict_cnet.keys():
-                        self.swriter.add_scalars('loss_anatomy_cnet/scalars',
-                                                {'train_loss_anatomy': train_loss_dict_cnet['loss_anatomy']/30,
-                                                'evald_loss_anatomy': eval_loss_dict_cnet['loss_anatomy']/30, },
-                                                self.epochs_completed)
+                    # if 'loss_anatomy' in train_loss_dict_cnet.keys():
+                    #     self.swriter.add_scalars('loss_anatomy_cnet/scalars',
+                    #                             {'train_loss_anatomy': train_loss_dict_cnet['loss_anatomy']/30,
+                    #                             'evald_loss_anatomy': eval_loss_dict_cnet['loss_anatomy']/30, },
+                    #                             self.epochs_completed)
 
-                if early_stopping_cnet(eval_loss_dict_cnet['loss_total'], train_loss_dict_cnet['loss_total'] ):
+                if early_stopping_cnet(train_loss_dict_cnet['loss_total'], train_loss_dict_cnet['loss_total'] ):
                     # self.fit_cnet = False
                     self.logger('Early stopping CoarseNet training!')
 
@@ -508,34 +517,40 @@ class Trainer:
                                                            epoch_num=self.epochs_completed, it=len(self.ds_val),
                                                            model_name='RefineNet',
                                                            try_num=self.try_num, mode='evald')
-                    if eval_loss_dict_rnet['loss_total'] < self.best_loss_rnet and train_loss_dict_rnet['loss_total']<self.best_loss_rnet:
+                    if train_loss_dict_rnet['loss_total']<self.best_loss_rnet:
 
                         self.cfg.best_rnet = makepath(os.path.join(self.cfg.work_dir, 'snapshots', 'TR%02d_E%03d_rnet.pt' % (self.try_num, self.epochs_completed)), isfile=True)
                         self.save_rnet()
                         self.logger(eval_msg + ' ** ')
-                        self.best_loss_rnet = eval_loss_dict_rnet['loss_total']
+                        self.best_loss_rnet = train_loss_dict_rnet['loss_total']
 
                     else:
                         self.logger(eval_msg)
 
-                    self.swriter.add_scalars('total_loss_rnet/scalars',
-                                             {'train_loss_total': train_loss_dict_rnet['loss_total'],
-                                              'evald_loss_total': eval_loss_dict_rnet['loss_total'], },
-                                             self.epochs_completed)
-                    
-                    if 'loss_lap' in train_loss_dict_rnet.keys():
-                        self.swriter.add_scalars('loss_lap_rnet/scalars',
-                                                {'train_loss_lap': train_loss_dict_rnet['loss_lap']/30.0,
-                                                'evald_loss_lap': eval_loss_dict_rnet['loss_lap']/30.0, },
-                                                self.epochs_completed)
-                        
-                    if 'loss_anatomy' in train_loss_dict_rnet.keys():
-                        self.swriter.add_scalars('loss_anatomy_rnet/scalars',
-                                                {'train_loss_anatomy': train_loss_dict_rnet['loss_anatomy']/30.0,
-                                                'evald_loss_anatomy': eval_loss_dict_rnet['loss_anatomy']/30.0, },
-                                                self.epochs_completed)
+                    for k in train_loss_dict_rnet:
+                        self.swriter.add_scalars(f'{k}_rnet/scalars',
+                                                 {f'train_{k}':train_loss_dict_rnet[k],
+                                                  f'evald_{k}':eval_loss_dict_rnet[k]},
+                                                 self.epochs_completed)
 
-                if early_stopping_rnet(eval_loss_dict_rnet['loss_total'], train_loss_dict_rnet['loss_total']):
+                    # self.swriter.add_scalars('total_loss_rnet/scalars',
+                    #                          {'train_loss_total': train_loss_dict_rnet['loss_total'],
+                    #                           'evald_loss_total': eval_loss_dict_rnet['loss_total'], },
+                    #                          self.epochs_completed)
+                    
+                    # if 'loss_lap' in train_loss_dict_rnet.keys():
+                    #     self.swriter.add_scalars('loss_lap_rnet/scalars',
+                    #                             {'train_loss_lap': train_loss_dict_rnet['loss_lap']/30.0,
+                    #                             'evald_loss_lap': eval_loss_dict_rnet['loss_lap']/30.0, },
+                    #                             self.epochs_completed)
+                        
+                    # if 'loss_anatomy' in train_loss_dict_rnet.keys():
+                    #     self.swriter.add_scalars('loss_anatomy_rnet/scalars',
+                    #                             {'train_loss_anatomy': train_loss_dict_rnet['loss_anatomy']/30.0,
+                    #                             'evald_loss_anatomy': eval_loss_dict_rnet['loss_anatomy']/30.0, },
+                    #                             self.epochs_completed)
+
+                if early_stopping_rnet(train_loss_dict_rnet['loss_total'], train_loss_dict_rnet['loss_total']):
                     self.fit_rnet = False
                     self.logger('Early stopping RefineNet training!')
 
