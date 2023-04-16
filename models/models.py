@@ -100,7 +100,13 @@ class CoarseNet(nn.Module):
         X  = self.enc_rb1(X0, True)
         X  = self.enc_rb2(torch.cat([X0, X], dim=1), True)
 
-        return torch.distributions.normal.Normal(self.enc_mu(X), F.softplus(self.enc_var(X)))
+        mu = self.enc_mu(X)
+        var = F.softplus(self.enc_var(X))
+
+        z_s = mu + 0.1*var
+
+        # return torch.distributions.normal.Normal(self.enc_mu(X), F.softplus(self.enc_var(X)))
+        return z_s, mu, var
 
     def decode(self, Zin, bps_object):
 
@@ -127,13 +133,11 @@ class CoarseNet(nn.Module):
         :param output_type: bps_delta of something, e.g. hand: Nxn_bpsx3
         :return:
         '''
-        z = self.encode(bps_object, trans_rhand, global_orient_rhand_rotmat)
-        z_s = z.rsample()
-
-        # z_s = z_s + torch.normal(0, 0.5, size=z_s.size()).to(z_s.get_device())
+        z_s, mu, var = self.encode(bps_object, trans_rhand, global_orient_rhand_rotmat)
+        # z_s = z.rsample()
 
         hand_parms = self.decode(z_s, bps_object)
-        results = {'mean': z.mean, 'std': z.scale}
+        results = {'mean': mu, 'std': var}
         results.update(hand_parms)
 
         # print('in model:', trans_rhand[0], results['transl'][0])

@@ -152,7 +152,7 @@ class Trainer:
 
         kwargs = {'num_workers': cfg.n_workers,
                   'batch_size':cfg.batch_size,
-                  'shuffle':False,
+                  'shuffle':True,
                   'drop_last':True
                   }
 
@@ -164,7 +164,7 @@ class Trainer:
         self.data_info[ds_name] = self.load_data_info(ds_test)
         self.ds_test = DataLoader(ds_test, batch_size=cfg.batch_size, shuffle=False, drop_last=True)
 
-        selected = list(range(2*cfg.batch_size))
+        # selected = list(range(2*cfg.batch_size))
 
         if not inference:
             ds_name = 'train'
@@ -172,7 +172,7 @@ class Trainer:
             self.data_info[ds_name] = self.load_data_info(ds_train)
             self.data_info['hand_vtmp'] = ds_train.sbj_vtemp
             self.data_info['hand_betas'] = ds_train.sbj_betas
-            ds_train = Subset(ds_train, selected)
+            # ds_train = Subset(ds_train, selected)
             self.ds_train = DataLoader(ds_train, **kwargs)
             
 
@@ -180,7 +180,7 @@ class Trainer:
             self.data_info[ds_name] = {}
             ds_val = LoadData(dataset_dir=cfg.dataset_dir, ds_name=ds_name, load_on_ram=cfg.load_on_ram)
             self.data_info[ds_name] = self.load_data_info(ds_val)
-            ds_val = Subset(ds_val, selected)
+            # ds_val = Subset(ds_val, selected)
             self.ds_val = DataLoader(ds_val, **kwargs)
 
 
@@ -247,9 +247,9 @@ class Trainer:
                                                         mode='train')
 
                     self.logger(train_msg)
-                if self.epochs_completed % 20 == 0:
-                    with torch.no_grad():
-                        self.vis_training_result(dorig, f'{self.epochs_completed}_{it}')
+                    if self.epochs_completed % 20 == 0:
+                        with torch.no_grad():
+                            self.vis_training_result(dorig, f'{self.epochs_completed}_{it}')
 
 
             if self.fit_rnet:
@@ -500,7 +500,7 @@ class Trainer:
                     #                             self.epochs_completed)
 
                 if early_stopping_cnet(train_loss_dict_cnet['loss_total'], train_loss_dict_cnet['loss_total'] ):
-                    # self.fit_cnet = False
+                    self.fit_cnet = False
                     self.logger('Early stopping CoarseNet training!')
 
             if self.fit_rnet:
