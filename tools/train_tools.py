@@ -88,7 +88,7 @@ def point2point_signed(
 
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
-    def __init__(self, patience=7, verbose=False, delta=0, trace_func=None):
+    def __init__(self, patience=7, verbose=False, delta=0.2, trace_func=None):
         """
         Args:
             patience (int): How long to wait after last time validation loss improved.
@@ -103,6 +103,7 @@ class EarlyStopping:
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
+        self.last_score = None
         self.best_score = None
         self.early_stop = False
         self.val_loss_min = np.Inf
@@ -115,11 +116,12 @@ class EarlyStopping:
 
         if self.best_score is None:
             self.best_score = score
+            self.last_score = score
         # elif train_score < score + self.delta:
         #     self.counter = 0
         #     if self.trace_func is not None:
         #         self.trace_func('Not yet converged')
-        elif score < self.best_score + self.delta:
+        elif score *(1+self.delta) < self.best_score  and score < self.last_score:
             self.counter += 1
             if self.trace_func is not None:
                 self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}')
@@ -128,4 +130,7 @@ class EarlyStopping:
         else:
             self.best_score = score
             self.counter = 0
+
+        self.last_score = score
+        
         return self.early_stop

@@ -87,6 +87,7 @@ class Trainer:
 
         self.LossL1 = torch.nn.L1Loss(reduction='mean')
         self.LossL2 = torch.nn.MSELoss(reduction='mean')
+        self.KLLoss = lambda mu, logvar: -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
         if cfg.use_multigpu:
             self.coarse_net = nn.DataParallel(self.coarse_net)
@@ -136,6 +137,7 @@ class Trainer:
 
         self.w_dist = torch.ones([self.cfg.batch_size,self.n_obj_verts]).to(self.device)
         self.contact_v = v_weights > 0.8
+        # print(v_weights[self.contact_v])
 
         self.fit_cnet = False
         self.fit_rnet = False
@@ -373,11 +375,6 @@ class Trainer:
         device = dorig['verts_rhand'].device
         dtype = dorig['verts_rhand'].dtype
 
-        q_z = torch.distributions.normal.Normal(drec['mean'], drec['std'])
-
-        # out_put = self.rhm_train(**drec)
-        # verts_rhand = out_put.vertices
-
         verts_rhand = self.get_hand_vertice(dorig, drec)
 
         rh_mesh = Meshes(verts=verts_rhand, faces=self.rh_f).to(self.device).verts_normals_packed().view(-1, 778, 3)
@@ -400,10 +397,7 @@ class Trainer:
         ########## edge loss
         loss_edge = 30 * (1. - self.cfg.kl_coef) * self.LossL1(self.edges_for(verts_rhand, self.vpe), self.edges_for(dorig['verts_rhand'], self.vpe))
         ########## KL loss
-        p_z = torch.distributions.normal.Normal(
-            loc=torch.tensor(np.zeros([self.cfg.batch_size, self.cfg.latentD]), requires_grad=False).to(device).type(dtype),
-            scale=torch.tensor(np.ones([self.cfg.batch_size, self.cfg.latentD]), requires_grad=False).to(device).type(dtype))
-        loss_kl = self.cfg.kl_coef * torch.mean(torch.sum(torch.distributions.kl.kl_divergence(q_z, p_z), dim=[1]))
+        loss_kl = self.cfg.kl_coef * self.KLLoss(drec['mu'], drec['logvar'])
         ##########
 
         loss_dict = {'loss_kl': loss_kl,
@@ -499,7 +493,7 @@ class Trainer:
                     #                             'evald_loss_anatomy': eval_loss_dict_cnet['loss_anatomy']/30, },
                     #                             self.epochs_completed)
 
-                if early_stopping_cnet(train_loss_dict_cnet['loss_total'], train_loss_dict_cnet['loss_total'] ):
+                if early_stopping_cnet(eval_loss_dict_cnet['loss_total'], train_loss_dict_cnet['loss_total'] ):
                     self.fit_cnet = False
                     self.logger('Early stopping CoarseNet training!')
 
@@ -550,7 +544,7 @@ class Trainer:
                     #                             'evald_loss_anatomy': eval_loss_dict_rnet['loss_anatomy']/30.0, },
                     #                             self.epochs_completed)
 
-                if early_stopping_rnet(train_loss_dict_rnet['loss_total'], train_loss_dict_rnet['loss_total']):
+                if early_stopping_rnet(eval_loss_dict_rnet['loss_total'], train_loss_dict_rnet['loss_total']):
                     self.fit_rnet = False
                     self.logger('Early stopping RefineNet training!')
 

@@ -90,6 +90,9 @@ class CoarseNet(nn.Module):
         self.dec_pose = nn.Linear(n_neurons, 16 * 6)
         self.dec_trans = nn.Linear(n_neurons, 3)
 
+        self.ll = nn.LeakyReLU(negative_slope=0.2)
+        self.MAX_LOGVAR = 5
+
     def encode(self, bps_object, trans_rhand, global_orient_rhand_rotmat):
         
         bs = bps_object.shape[0]
@@ -101,12 +104,10 @@ class CoarseNet(nn.Module):
         X  = self.enc_rb2(torch.cat([X0, X], dim=1), True)
 
         mu = self.enc_mu(X)
-        var = F.softplus(self.enc_var(X))
+        logvar = self.enc_var(X)
+        logvar = torch.clamp(logvar, max=self.MAX_LOGVAR)
 
-        z_s = mu + 0.1*var
-
-        # return torch.distributions.normal.Normal(self.enc_mu(X), F.softplus(self.enc_var(X)))
-        return z_s, mu, var
+        return mu, logvar
 
     def decode(self, Zin, bps_object):
 
@@ -117,13 +118,17 @@ class CoarseNet(nn.Module):
         X = self.dec_rb1(X0, True)
         X = self.dec_rb2(torch.cat([X0, X], dim=1), True)
 
-        pose = self.dec_pose(X)
-        trans = self.dec_trans(X)
+        pose = self.ll(self.dec_pose(X))
+        trans = self.ll(self.dec_trans(X))
 
         results = parms_decode(pose, trans)
         results['z'] = Zin
 
         return results
+    
+    def reparameterize(self, mu, logvar):
+        epsilon = torch.randn_like(mu)
+        return mu #+ epsilon * torch.exp(logvar/2)
 
     def forward(self, bps_object, trans_rhand, global_orient_rhand_rotmat, **kwargs):
         '''
@@ -133,11 +138,12 @@ class CoarseNet(nn.Module):
         :param output_type: bps_delta of something, e.g. hand: Nxn_bpsx3
         :return:
         '''
-        z_s, mu, var = self.encode(bps_object, trans_rhand, global_orient_rhand_rotmat)
+        mu, logvar = self.encode(bps_object, trans_rhand, global_orient_rhand_rotmat)
         # z_s = z.rsample()
+        z_s = self.reparameterize(mu, logvar)
 
         hand_parms = self.decode(z_s, bps_object)
-        results = {'mean': mu, 'std': var}
+        results = {'mu': mu, 'logvar': logvar}
         results.update(hand_parms)
 
         # print('in model:', trans_rhand[0], results['transl'][0])
