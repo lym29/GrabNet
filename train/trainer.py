@@ -87,7 +87,7 @@ class Trainer:
 
         self.LossL1 = torch.nn.L1Loss(reduction='mean')
         self.LossL2 = torch.nn.MSELoss(reduction='mean')
-        self.KLLoss = lambda mu, logvar: -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        self.KLLoss = lambda mu, logvar: -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp())
 
         if cfg.use_multigpu:
             self.coarse_net = nn.DataParallel(self.coarse_net)
