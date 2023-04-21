@@ -128,7 +128,7 @@ class CoarseNet(nn.Module):
     
     def reparameterize(self, mu, logvar):
         epsilon = torch.randn_like(mu)
-        return mu #+ epsilon * torch.exp(logvar/2)
+        return mu + epsilon * torch.exp(logvar/2)
 
     def forward(self, bps_object, trans_rhand, global_orient_rhand_rotmat, **kwargs):
         '''
