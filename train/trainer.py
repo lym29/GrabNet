@@ -135,7 +135,7 @@ class Trainer:
         self.v_weights = v_weights
         self.v_weights2 = v_weights2
 
-        self.w_dist = torch.ones([self.cfg.batch_size,self.n_obj_verts]).to(self.device)
+        self.w_dist = torch.ones([self.cfg.batch_size, self.n_obj_verts]).to(self.device)
         self.contact_v = v_weights > 0.8
         # print(v_weights[self.contact_v])
 
