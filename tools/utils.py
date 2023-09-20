@@ -18,10 +18,44 @@ import torch
 import logging
 
 import torch.nn.functional as F
+from copy import copy
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 to_cpu = lambda tensor: tensor.detach().cpu().numpy()
+
+def parse_npz(npz, allow_pickle=True):
+    npz = np.load(npz, allow_pickle=allow_pickle)
+    npz = {k: npz[k].item() for k in npz.files}
+    return DotDict(npz)
+
+def params2torch(params, dtype = torch.float32):
+    return {k: torch.from_numpy(v).type(dtype) for k, v in params.items()}
+
+def prepare_params(params, frame_mask, dtype = np.float32):
+    return {k: v[frame_mask].astype(dtype) for k, v in params.items()}
+
+def DotDict(in_dict):
+
+    out_dict = copy(in_dict)
+    for k,v in out_dict.items():
+       if isinstance(v,dict):
+           out_dict[k] = DotDict(v)
+    return dotdict(out_dict)
+
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
+def append2dict(source, data):
+    for k in data.keys():
+        if isinstance(data[k], list):
+            source[k] += data[k].astype(np.float32)
+        else:
+            source[k].append(data[k].astype(np.float32))
 
 class Struct(object):
     def __init__(self, **kwargs):
@@ -57,7 +91,6 @@ def makepath(desired_path, isfile = False):
     return desired_path
 
 def makelogger(log_dir,mode='w'):
-
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
